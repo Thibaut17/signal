@@ -2,7 +2,7 @@
 """
 Created on Fri Sep 27 13:29:18 2019
 
-@author: thibaut
+@author: Thibaut Jolive PSI
 """
 from signal_traitement import traitement as trait, lecture_oscillo
 name="example.csv"
