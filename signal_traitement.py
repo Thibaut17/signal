@@ -377,7 +377,29 @@ class traitement:
 #######
 #Filtrage
 #######		
-	
+	def filtre_passe_haut_1(self,G=1,fc=1,i=1):
+	"""
+	Réalise un filtrage linéaire passe-haut d'ordre 1 semblbable à un filtre analogique
+	G : int : Gain du filtre
+	fc : float ou int : fréquence de coupure du filtre
+	i : int 1 ou 2 : permet de choisir de travailler avec le signal 1 ou le signal 2
+	Attention le signal de base est détruit après opération de filtrage
+	"""
+	if i==1:
+		e=self.signal1
+	else:
+		e=self.signal2
+	te=self.Te
+	tau=1/(2*fc*np.pi)
+	s=[0]
+	for n in range(len(e)-1):
+		s.append((1-te/tau)*s[n]+e[n]-e[n+1])
+	if i ==1:
+		self.signal1=np.array(s)
+	else:
+		self.signal2=np.array(s)
+	return None
+
 	def passe_bas1(self,G=1,fc=1,i=1):
 		"""
 		Réalise un filtrage linéaire passe-bas d'ordre 1 semblbable à un filtre analogique
