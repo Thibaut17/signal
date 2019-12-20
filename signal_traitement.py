@@ -6,6 +6,7 @@ Created on Thu Nov 21 13:06:15 2019
 """
 import numpy as np
 import matplotlib.pyplot as plt
+import random as rd
 
 """
 Module permettant de faire de l'analyse de signaux de manière très simple
@@ -14,6 +15,14 @@ Attention Programmation objet donc utilisation de méthodes et non de fonctions!
 ################
 #Lecture des fichiers généré par les oscilloscopes Keysight InfiniiVision 2000 X-Series Oscilloscopes du lycée
 ################
+def recherche(a,L):
+	b=L[0]
+	j=0
+	for i in range(len(L)):
+		if L[i]>b:
+			b=L[i]
+			j=i
+	return j
 def lecture_oscillo(name):
 	"""
 	Renvoi la tension en colonne 1 et 2 et le temps des fichiers générés
@@ -45,6 +54,89 @@ def lecture_oscillo(name):
 		i+=1
 	return u1,u2,t
 
+class generation:
+	def __init__(self, duree, Te, t=None):
+		"""
+		Permet de générer un signal de tout type
+		duree : float : duree du signal
+		Te : periode echantillonage
+		"""
+		if t != None:
+			self.temps=np.array(t)
+			self.duree=t[-1]-t[0]
+			self.Te=t[1]-t[0]
+			self.signal=0*self.temps
+		else:
+			self.temps=np.arange(0,duree,Te)
+			self.duree=duree
+			self.Te=Te
+			self.signal=0*self.temps
+		return None
+	
+	def impulsion(self,A=1):
+		"""
+		Génère une impulsion d'amplitude A
+		A : float : amplitude
+		"""
+		s=0*self.temps
+		s[0]=A
+		self.signal=s
+		return None
+	
+	def sinus(self,A=1,f=1,phi=0):
+		"""
+		Génère un signal sinusoïdale de fréquence f d'amplitude A et de phase phi
+		A : float : amplitude
+		f : float : fréquence
+		phi : float : phase à l'origine pi/2 pour générer un cosinus
+		"""
+		t=self.temps
+		self.signal=A*np.sin(2*np.pi*f*t+phi)
+		return None
+	def creneau(self,A=1,f=1,c=0.5):
+		"""
+		Genere un signal creneau d'amplitude A, de frequence f et de rapport cyclique c
+		A : float : amplitude
+		f : float : fréquence
+		c : float : rapport cyclique
+		"""
+		t=self.temps
+		x=[]
+		for n in t:
+			if f*n-int(f*n) < c:
+				x.append(A)
+			else:
+				x.append(-A)
+		self.signal=np.array(x)
+		return None
+	
+	def triangle(self,f=1,A=1):
+		"""
+		Génère un signal triange de fréquence f et d'amplitude A
+		A : float : amplitude
+		f : float : fréquence
+		"""
+		t=self.temps
+		s= [A*np.arcsin(np.sin(2*np.pi*z*f)) for z in t]
+		self.signal=np.array(s)
+		return None
+	
+	def bruit(self,A=1):
+		"""
+		Renvoi un bruit d'amplitude A
+		A : float : amplitude
+		"""
+		t=self.temps
+		x=[rd.uniform(-A,A) for i in t]
+		self.signal=np.array(x)
+		return None
+	
+	def renvoi(self):
+		"""
+		Renvoi le temps ainsi que la liste des valeurs du signal qui lui est associée
+		"""
+		return self.temps,self.signal
+
 class traitement:
 	
 	def __init__(self, temps, signal1, signal2=None, number=0):
@@ -63,7 +155,14 @@ class traitement:
 		return None
 ################
 #Recupération des signaux
-################	
+################
+	def s_t(self,t,i=1):
+		if i == 1:
+			s=self.signal1
+		else :
+			s=self.signal2
+		t=recherche(t,self.temps)
+		return s[t]
 	def recupere(self,i=1):
 		"""
 		Renvoi des listes correspondants aux valeurs du signal 1 ou 2 en fonction de celui voulu
@@ -100,7 +199,19 @@ class traitement:
 		for i in range(len(sign)):
 			sign[i]=sign[i]-moy
 		return None
-
+	
+	def moye(self,i=1):
+		"""
+        Donne la valeur moyenne
+		i : 1 ou 2 : permet de choisir si on travail avec le signal 1 ou le signal 2
+		"""
+		if i ==1:
+			sign=self.signal1
+		else :
+			sign=self.signal2
+		moy=np.mean(sign)
+		return moy
+    
 	def amplitude(self,i=1):
 		"""
 		Donne l'amplitude de la liste, dans le cas d'un signal cette mesure n'est valable
@@ -158,11 +269,11 @@ class traitement:
 ################
 #Analyse spectrale
 ################
-	def FFT(self,name="spectre_fft.png",f1=None,f2=None):
+	def FFT(self,titre="Spectre frequence signal n°0",name="spectre_fft.png",f1=None,f2=None):
 		"""
-		Trace le spectre en amplitude du signal s(t) par l'algorithme de FFT et l'enregistre
-		name : nom du fichier enregistré
-		f1,f2 : permet de centrer sur la fréquence f1 ou f2
+		Trace le spectre en amplitude du signal s(t) par l'algorithme de FFT et l'enregistre \n
+		name : nom du fichier enregistré \n
+		f1,f2 : permet de centrer sur la fréquence f1 ou f2 \n
 		"""
 		tp=self.temps
 		u1p=self.signal1
@@ -177,7 +288,7 @@ class traitement:
 		yf = np.fft.fft(u1p)
 		xf = np.linspace(0.0, 1.0/(2.0*T), N//2)
 		plt.figure()
-		plt.title("Spectre frequence n°"+str(number))
+		plt.title(titre)
 		plt.xlabel('f')
 		plt.ylabel('A')
 		plt.xscale('log')
@@ -200,7 +311,7 @@ class traitement:
 ################
 #Tracer des signaux
 ################	
-	def trace(self,name="signal.png",t="$t$",z="$s(t)$",xlim=None,ylim=None):
+	def trace(self,titre="Signal n°0",name="signal.png",t="$t$",z="$s(t)$",xlim=None,ylim=None):
 		"""
 		Trace le signal s(t) et l'enregistre
 		name : nom du fichier enregistré
@@ -214,7 +325,7 @@ class traitement:
 		y2=self.signal2
 		number=self.number
 		plt.figure()
-		plt.title("Signal n°"+str(number))
+		plt.title(titre)
 		plt.xlabel(t)
 		plt.ylabel(z)
 		if self.control==1:
@@ -246,14 +357,14 @@ class traitement:
 		s1=self.signal1
 		s2=self.signal2
 		return (s1+s2,self.temps)
-	def multiplication(self):
+	def multiplication(self,z=0):
 		"""
 		Multipilie le signal 1 et 2
 		renvoi la multiplication des signaux ainsi que l'échelle de temps
 		"""
 		s1=self.signal1
 		s2=self.signal2
-		return (s1*s2,self.temps)
+		return (s1*s2+z,self.temps)
 	def soustraction(self):
 		"""
 		Soustrait le signal 2 au signal 1
